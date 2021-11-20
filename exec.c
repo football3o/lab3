@@ -12,7 +12,7 @@ exec(char *path, char **argv)
 {
   char *s, *last;
   int i, off;
-  uint argc, sz, sp, ustack[3+MAXARG+1];
+  uint argc, sz, sp, ustack[3+MAXARG+1], stsz;
   struct elfhdr elf;
   struct inode *ip;
   struct proghdr ph;
@@ -62,24 +62,24 @@ exec(char *path, char **argv)
   //brk = sz;
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
-  
-  /*sz = PGROUNDUP(sz);
+  /*
+  sz = PGROUNDUP(sz);
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
   sp = sz;
   */
   cprintf("%d : process %d memory size\n", sz, curproc->pid);
-  sz = KERNBASE-PGSIZE-1;
+  stsz = KERNBASE-PGSIZE-1;
   cprintf("%d : stack ptr val\n", sz);
-  if((sz = allocuvm(pgdir, sz, sz + 2)) == 0){
+  if((stsz = allocuvm(pgdir, stsz, stsz + 2)) == 0){
     cprintf("failed allocuvm \n");
     goto bad;
 
   }
-    sz = PGROUNDUP(sz)-1;
+    stsz = PGROUNDUP(stsz);
   //sz = KERNBASE-1;
-  sp = sz;
+  sp = stsz;
 cprintf("%d : stack ptr val\n", sp);
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
@@ -118,6 +118,7 @@ cprintf("%d : stack ptr val\n", sp);
   cprintf("%d : process %d memory size\n", sz, curproc->pid);
   curproc->sz = sz;//change this
 
+  curproc->stackPages = 1;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
   switchuvm(curproc);

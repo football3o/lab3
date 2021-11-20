@@ -40,10 +40,15 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 
   pde = &pgdir[PDX(va)];
   if(*pde & PTE_P){
+    //cprintf("walkpgdir, in first if\n");
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+    //cprintf("walkpgdir, in first else\n");
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0){
+      //cprintf("pgtab = %d\n", *pgtab);
       return 0;
+    }
+    cprintf("pgtab = %d\n", *pgtab);
     // Make sure all those PTE_P bits are zero.
     memset(pgtab, 0, PGSIZE);
     // The permissions here are overly generous, but they can
@@ -318,15 +323,44 @@ copyuvm(pde_t *pgdir, uint sz)
   pde_t *d;
   pte_t *pte;
   uint pa, i, flags;
+  //uint counter;
   char *mem;
+  struct proc *curproc = myproc();
 
   if((d = setupkvm()) == 0)
     return 0;
+
+ // counter =0;
   for(i = 0; i < sz; i += PGSIZE){
+    
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(!(*pte & PTE_P))
+      cprintf("%d = pte, pid = %d\n", *pte , curproc->pid);
+    cprintf("%d = pte&pte_p, pid = %d\n", (*pte & PTE_P), curproc->pid);
+    if(!(*pte & PTE_P)){
       panic("copyuvm: page not present");
+    }
+    pa = PTE_ADDR(*pte);
+    flags = PTE_FLAGS(*pte);
+    if((mem = kalloc()) == 0)
+      goto bad;
+    memmove(mem, (char*)P2V(pa), PGSIZE);
+    if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0)
+      goto bad;
+    
+    //counter++;
+   // if(counter>curproc->stackPages){
+      //break;
+   // }
+  }
+  for(i=KERNBASE-(PGSIZE*curproc->stackPages); i<KERNBASE;i+=PGSIZE){
+    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+      panic("copyuvm: pte should exist");
+      cprintf("%d = pte, pid = %d\n", *pte , curproc->pid);
+    cprintf("%d = pte&pte_p, pid = %d\n", (*pte & PTE_P), curproc->pid);
+    if(!(*pte & PTE_P)){
+      panic("copyuvm: page not present");
+    }
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
     if((mem = kalloc()) == 0)
