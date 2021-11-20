@@ -59,22 +59,41 @@ exec(char *path, char **argv)
   iunlockput(ip);
   end_op();
   ip = 0;
-
+  //brk = sz;
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
-  sz = PGROUNDUP(sz);
+  
+  /*sz = PGROUNDUP(sz);
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
   sp = sz;
+  */
+  cprintf("%d : process %d memory size\n", sz, curproc->pid);
+  sz = KERNBASE-PGSIZE-1;
+  cprintf("%d : stack ptr val\n", sz);
+  if((sz = allocuvm(pgdir, sz, sz + 2)) == 0){
+    cprintf("failed allocuvm \n");
+    goto bad;
 
+  }
+    sz = PGROUNDUP(sz)-1;
+  //sz = KERNBASE-1;
+  sp = sz;
+cprintf("%d : stack ptr val\n", sp);
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
-    if(argc >= MAXARG)
+    if(argc >= MAXARG){
+      cprintf("failed arg pushes \n");
       goto bad;
+    }
+    cprintf("%d : stack ptr val\n", sp);
     sp = (sp - (strlen(argv[argc]) + 1)) & ~3;
-    if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
+    cprintf("%d : stack ptr val\n", sp);
+    if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0){
+     cprintf("failed copy page \n");
       goto bad;
+    }
     ustack[3+argc] = sp;
   }
   ustack[3+argc] = 0;
@@ -96,7 +115,9 @@ exec(char *path, char **argv)
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
-  curproc->sz = sz;
+  cprintf("%d : process %d memory size\n", sz, curproc->pid);
+  curproc->sz = sz;//change this
+
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
   switchuvm(curproc);
