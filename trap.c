@@ -78,6 +78,28 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
 
+///// lab 3 pagefault case
+  case T_PGFLT:
+   cprintf("Page fault\n");
+   cprintf("current stackpages %d \n", myproc()->stackPages);
+    //use rcr2() to check the address that caused the page fault
+   //check if it's from the page right under current bottom of stack
+  uint cr = rcr2();
+  uint loc = KERNBASE - PGSIZE - 1 ;
+  if(cr >=  loc - myproc()->stackPages * PGSIZE){
+    cr = PGROUNDDOWN(cr);
+    if(allocuvm(myproc()->pgdir, cr, cr + 2) == 0){
+      cprintf("allocuvm failed in trap \n");
+      cprintf("current stackpages %d \n", myproc()->stackPages);
+      break;
+    }
+    myproc()->stackPages +=1;
+    cprintf("new page has been allocated, current stackpages %d \n", myproc()->stackPages);
+  }
+  break;
+
+  
+
   //PAGEBREAK: 13
   default:
     if(myproc() == 0 || (tf->cs&3) == 0){
@@ -109,4 +131,4 @@ trap(struct trapframe *tf)
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
-}
+} 

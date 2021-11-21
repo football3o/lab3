@@ -21,18 +21,21 @@ main(int argc, char *argv[])
   if (argc == 1) {
     v = argc;
     printf(1, "Lab 3 (part 1) - Address at first location: %p\n", &v);
-    exit(0);
+    exit();
+//    exit(0);
   }
   else if (argc == 2) {
     n = atoi(argv[1]);
     printf(1, "Lab 3 (part 2) - Recursing %d levels\n", n);
     m = recurse(n);
     printf(1, "Lab 3 (part 2) - Yielded a value of %d\n", m);
-    exit(0);
+    exit();
+ //   exit(0);
   }
   else {
     printf(1, "Test Part 1 - Usage: $ %s\n", argv[0]);
     printf(1, "Test Part 2 - Usage: $ %s <levels>\n", argv[0]);
-    exit(0);
+    exit();
+  //  exit(0);
   }
 }
